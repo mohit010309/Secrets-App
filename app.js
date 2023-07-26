@@ -8,6 +8,7 @@ const session = require('express-session')
 const passport = require('passport');
 const passportLocalMongoose = require('passport-local-mongoose');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const findOrCreate = require('mongoose-findorcreate')
 // salt rounds - more salt rounds means more computation time
 // const saltRounds = 10; 
@@ -31,7 +32,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 const userSchema = new mongoose.Schema({
     email:String,
     password:String,
-    googleId:String
+    googleId:String,
+    facebookId:String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -70,6 +72,19 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_CLIENT_ID,
+    clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/secrets"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    userModel.findOrCreate({ username: profile.id,facebookId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
 app.listen(3000,function(){
     console.log("Server is running on port 3000");
 });
@@ -87,6 +102,16 @@ app.get("/auth/google/secrets",
   function(req, res) {
     // Successful authentication, redirect secrets.
     res.redirect("/secrets");
+  });
+  
+  app.get('/auth/facebook',
+  passport.authenticate('facebook'));
+
+  app.get('/auth/facebook/secrets',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/secrets');
   });
 
 app.get("/login",function(req,res){
