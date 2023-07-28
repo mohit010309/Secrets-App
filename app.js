@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
     password:String,
     googleId:String,
     facebookId:String,
-    secret:String
+    secret:[String]
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -124,6 +124,10 @@ app.get("/register",function(req,res){
 });
 
 app.get("/secrets",function(req,res){
+    // userModel.find({secret:{$ne:null}}).then(function(data){
+    //     console.log(data);
+    //     res.send("in development...");
+    // });
     userModel.find({secret:{$ne:null}}).then(function(foundUsers){
         if(foundUsers)
             res.render("secrets",{usersWithSecrets:foundUsers});
@@ -192,7 +196,7 @@ app.post("/submit",function(req,res){
     userModel.findById(user_id).then(function(user_found){
         if(user_found)
         {
-            user_found.secret=submittedSecret;
+            user_found.secret.push(submittedSecret);;
             user_found.save().then(function(){
                 console.log("Saved successfully!");
                 res.redirect("/secrets");
